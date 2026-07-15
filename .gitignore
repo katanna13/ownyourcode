@@ -9,3 +9,6 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+.pytest_cache/
+*.tsbuildinfo
+*.egg-info/

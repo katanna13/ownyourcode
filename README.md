@@ -138,11 +138,16 @@ See the full architecture document:
 
 ## Project Status
 
-This project is currently under active development for OpenAI Build Week.
+Phase 1 provides a runnable product skeleton: a React frontend with three
+routes, a FastAPI liveness endpoint, PostgreSQL and SQLAlchemy configuration,
+Docker Compose, and basic tests. Project creation and persistence are not
+implemented yet.
 
-The README will be updated as features become implemented and verified.
+The following are intentionally not implemented: authentication, GitHub
+repository cloning, model calls, lesson generation, code execution, security
+scanning, Ownership Score, demo data, database models, or migrations.
 
-## Current Repository Structure
+## Initial Repository Structure
 
 ```text
 ownyourcode/
@@ -153,23 +158,34 @@ ownyourcode/
 └── .env.example
 ```
 
+## Local Development
+
+Prerequisite: Docker Desktop with Docker Compose v2.
+
+In PowerShell, create your local development configuration and start the
+services:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build -d
+```
+
+Verify the API and run the tests:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/healthz
+docker compose exec api pytest
+docker compose exec web npm run test -- --run
+```
+
+The frontend is available at `http://localhost:5173`; the FastAPI docs are at
+`http://localhost:8000/docs`. Stop the stack with `docker compose down`.
+
 ## Environment Variables
 
-Copy the example file:
-
-```bash
-cp .env.example .env
-```
-
-Then add the required local values.
-
-```env
-OPENAI_API_KEY=
-DATABASE_URL=
-GITHUB_TOKEN=
-```
-
-Never commit the real `.env` file.
+Copy `.env.example` to `.env` and retain local values only. Phase 1 uses
+`APP_ENV`, PostgreSQL credentials, and `DATABASE_URL`; it does not require
+OpenAI or GitHub credentials.
 
 ## Development Principles
 
