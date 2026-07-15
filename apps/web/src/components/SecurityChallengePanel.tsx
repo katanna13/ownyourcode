@@ -1,7 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { SecurityChallengePanel } from "./SecurityChallengePanel";
-
 type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type RelevantEvidence = {
@@ -11,12 +9,12 @@ type RelevantEvidence = {
   detail: string;
 };
 
-type AvailableLab = {
+type AvailableSecurityChallenge = {
   persisted: false;
   available: true;
   message: string;
-  lab_id: "fastapi-health-check.v1";
-  lab_context_id: string;
+  security_challenge_id: "fastapi-cors.v1";
+  security_challenge_context_id: string;
   title: string;
   learning_objective: string;
   instructions: string;
@@ -27,7 +25,7 @@ type AvailableLab = {
   inspection_limitations: string[];
 };
 
-type UnavailableLab = {
+type UnavailableSecurityChallenge = {
   persisted: false;
   available: false;
   message: string;
@@ -35,9 +33,11 @@ type UnavailableLab = {
   inspection_limitations: string[];
 };
 
-type LabPreparation = AvailableLab | UnavailableLab;
+type SecurityChallengePreparation =
+  | AvailableSecurityChallenge
+  | UnavailableSecurityChallenge;
 
-type LabEvaluation = {
+type SecurityChallengeEvaluation = {
   persisted: false;
   passed: boolean;
   message: string;
@@ -46,10 +46,10 @@ type LabEvaluation = {
   inspection_limitations: string[];
 };
 
-type VerifiedLabPanelProps = {
+type SecurityChallengePanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
-  assessmentReady: boolean;
+  verifiedLabPassed: boolean;
 };
 
 function apiBaseUrl(): string | null {
@@ -80,14 +80,16 @@ function responseMessages(payload: unknown): string[] {
   });
 }
 
-export function VerifiedLabPanel({
+export function SecurityChallengePanel({
   repositoryUrl,
   learnerLevel,
-  assessmentReady
-}: VerifiedLabPanelProps) {
-  const [preparation, setPreparation] = useState<LabPreparation | null>(null);
+  verifiedLabPassed
+}: SecurityChallengePanelProps) {
+  const [preparation, setPreparation] =
+    useState<SecurityChallengePreparation | null>(null);
   const [sourceCode, setSourceCode] = useState("");
-  const [evaluation, setEvaluation] = useState<LabEvaluation | null>(null);
+  const [evaluation, setEvaluation] =
+    useState<SecurityChallengeEvaluation | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [isPreparing, setIsPreparing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,13 +103,13 @@ export function VerifiedLabPanel({
     setErrors([]);
     setIsPreparing(false);
     setIsSubmitting(false);
-  }, [repositoryUrl, learnerLevel, assessmentReady]);
+  }, [repositoryUrl, learnerLevel, verifiedLabPassed]);
 
-  if (!assessmentReady) {
+  if (!verifiedLabPassed) {
     return null;
   }
 
-  async function prepareLab() {
+  async function prepareChallenge() {
     const baseUrl = apiBaseUrl();
     if (!baseUrl) {
       setErrors(["The API URL is not configured."]);
@@ -121,7 +123,7 @@ export function VerifiedLabPanel({
     const requestContextVersion = contextVersion.current;
     try {
       const response = await fetch(
-        `${baseUrl}/api/v1/labs/fastapi-health-check/prepare`,
+        `${baseUrl}/api/v1/security-challenges/fastapi-cors/prepare`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -140,17 +142,17 @@ export function VerifiedLabPanel({
         setErrors(
           messages.length > 0
             ? messages
-            : ["The verified lab could not be prepared. Please try again."]
+            : ["The security challenge could not be prepared. Please try again."]
         );
         return;
       }
-      const preparedLab = payload as LabPreparation;
       if (contextVersion.current !== requestContextVersion) {
         return;
       }
-      setPreparation(preparedLab);
-      if (preparedLab.available) {
-        setSourceCode(preparedLab.starter_code);
+      const preparedChallenge = payload as SecurityChallengePreparation;
+      setPreparation(preparedChallenge);
+      if (preparedChallenge.available) {
+        setSourceCode(preparedChallenge.starter_code);
       }
     } catch {
       if (contextVersion.current !== requestContextVersion) {
@@ -173,7 +175,7 @@ export function VerifiedLabPanel({
     setErrors([]);
   }
 
-  async function evaluateLab(event: FormEvent<HTMLFormElement>) {
+  async function evaluateChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!preparation || !preparation.available) {
       return;
@@ -189,14 +191,14 @@ export function VerifiedLabPanel({
     const requestContextVersion = contextVersion.current;
     try {
       const response = await fetch(
-        `${baseUrl}/api/v1/labs/fastapi-health-check/evaluate`,
+        `${baseUrl}/api/v1/security-challenges/fastapi-cors/evaluate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             repository_url: repositoryUrl,
             learner_level: learnerLevel,
-            lab_context_id: preparation.lab_context_id,
+            security_challenge_context_id: preparation.security_challenge_context_id,
             source_code: sourceCode
           })
         }
@@ -210,14 +212,14 @@ export function VerifiedLabPanel({
         setErrors(
           messages.length > 0
             ? messages
-            : ["The verified lab could not be evaluated. Please try again."]
+            : ["The security challenge could not be evaluated. Please try again."]
         );
         return;
       }
       if (contextVersion.current !== requestContextVersion) {
         return;
       }
-      setEvaluation(payload as LabEvaluation);
+      setEvaluation(payload as SecurityChallengeEvaluation);
     } catch {
       if (contextVersion.current !== requestContextVersion) {
         return;
@@ -231,26 +233,26 @@ export function VerifiedLabPanel({
   }
 
   return (
-    <section className="verified-lab" aria-labelledby="verified-lab-title">
-      <h3 id="verified-lab-title">Verified coding lab</h3>
-      <p>Practice a small server-owned teaching fixture after your assessment. Nothing is saved.</p>
+    <section className="security-challenge" aria-labelledby="security-challenge-title">
+      <h3 id="security-challenge-title">Verified security challenge</h3>
+      <p>Practice a server-owned CORS teaching fixture for this FastAPI-oriented stack. Nothing is saved.</p>
 
       {!preparation && (
-        <button className="button" type="button" onClick={prepareLab} disabled={isPreparing}>
-          {isPreparing ? "Preparing verified lab..." : "Prepare verified lab"}
+        <button className="button" type="button" onClick={prepareChallenge} disabled={isPreparing}>
+          {isPreparing ? "Preparing security challenge..." : "Prepare security challenge"}
         </button>
       )}
 
       {errors.length > 0 && (
         <section className="message message--error" role="alert">
-          <h4>Verified lab needs attention</h4>
+          <h4>Security challenge needs attention</h4>
           <ul>{errors.map((message) => <li key={message}>{message}</li>)}</ul>
         </section>
       )}
 
       {preparation && !preparation.available && (
         <section className="message" role="status">
-          <h4>Lab unavailable</h4>
+          <h4>Security challenge unavailable</h4>
           <p>{preparation.reason}</p>
           <h5>Inspection limitations</h5>
           <ul>{preparation.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
@@ -258,7 +260,7 @@ export function VerifiedLabPanel({
       )}
 
       {preparation && preparation.available && (
-        <form className="verified-lab-form" onSubmit={evaluateLab}>
+        <form className="security-challenge-form" onSubmit={evaluateChallenge}>
           <h4>{preparation.title}</h4>
           <p>{preparation.learning_objective}</p>
           <p>{preparation.instructions}</p>
@@ -266,17 +268,17 @@ export function VerifiedLabPanel({
           <ul>{preparation.relevant_evidence.map((item) => <li key={item.id}>{item.label} ({item.id})</li>)}</ul>
           <h5>Constraints</h5>
           <ul>{preparation.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul>
-          <label className="field" htmlFor="verified-lab-source">
+          <label className="field" htmlFor="security-challenge-source">
             Teaching fixture code
             <textarea
-              id="verified-lab-source"
+              id="security-challenge-source"
               value={sourceCode}
               maxLength={preparation.maximum_source_length}
               onChange={(event) => setSourceCode(event.target.value)}
             />
           </label>
           <p>Maximum source length: {preparation.maximum_source_length} characters.</p>
-          <div className="verified-lab-actions">
+          <div className="security-challenge-actions">
             <button className="button" type="button" onClick={resetFixture} disabled={isSubmitting}>
               Reset fixture
             </button>
@@ -289,9 +291,9 @@ export function VerifiedLabPanel({
 
       {evaluation && (
         <section className={`message ${evaluation.passed ? "message--success" : "message--error"}`} role="status">
-          <h4>{evaluation.passed ? "Lab passed" : "Lab needs another attempt"}</h4>
+          <h4>{evaluation.passed ? "Security challenge passed" : "Security challenge needs another attempt"}</h4>
           <p>{evaluation.message}</p>
-          <ul className="lab-checks">
+          <ul className="security-challenge-checks">
             {evaluation.checks.map((check) => (
               <li key={check.id}>
                 <strong>{check.passed ? "Passed" : "Not passed"}:</strong> {check.message}
@@ -304,11 +306,6 @@ export function VerifiedLabPanel({
           <ul>{evaluation.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
-      <SecurityChallengePanel
-        repositoryUrl={repositoryUrl}
-        learnerLevel={learnerLevel}
-        verifiedLabPassed={Boolean(evaluation?.passed)}
-      />
     </section>
   );
 }

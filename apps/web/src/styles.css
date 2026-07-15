@@ -169,6 +169,32 @@ textarea {
   padding-left: 1.25rem;
 }
 
+.security-challenge {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b7d8c4;
+}
+
+.security-challenge-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.security-challenge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.security-challenge-actions .button {
+  margin-top: 0;
+}
+
+.security-challenge-checks {
+  padding-left: 1.25rem;
+}
+
 .lesson article {
   margin: 1.5rem 0;
   padding: 1rem;

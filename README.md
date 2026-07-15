@@ -138,12 +138,13 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 6 adds one preview-only, AST-verified FastAPI-style health-check teaching
-fixture after an assessment evaluation. It is available only when fresh
-deterministic evidence confirms Python and FastAPI, then parses a bounded
-learner submission without running it. The fixture is server-owned and never
-claimed to be repository source. No project, repository result, prompt,
-lesson, question, answer, source code, or score is saved.
+Phase 7 adds one preview-only, AST-verified FastAPI CORS teaching fixture after
+a passing verified lab. It is available only when fresh deterministic evidence
+confirms Python and FastAPI, then parses a bounded learner submission without
+running it. The fixture is server-owned and never claimed to be repository
+source; it teaches a CORS configuration concept but does not scan the
+repository or prove a production-ready configuration. No project, repository
+result, prompt, lesson, question, answer, source code, or score is saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, code execution, security scanning, Ownership Score, demo

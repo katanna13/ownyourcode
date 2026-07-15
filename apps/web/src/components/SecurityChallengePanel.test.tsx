@@ -7,23 +7,37 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { VerifiedLabPanel } from "./VerifiedLabPanel";
+import { SecurityChallengePanel } from "./SecurityChallengePanel";
 
-const starterCode = 'def healthz():\n    return {"status": "ok"}\n';
-const validCode = 'def healthz():\n    return {"status": "ok", "service": "ownyourcode-api"}\n';
+const starterCode = `from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+)
+`;
+
+const validCode = starterCode.replace(
+  'allow_origins=["*"]',
+  'allow_origins=["http://localhost:5173"]'
+);
 
 function availablePreparation(contextId = "a".repeat(64)) {
   return {
     persisted: false,
     available: true,
-    message: "Verified lab prepared. Nothing was saved.",
-    lab_id: "fastapi-health-check.v1",
-    lab_context_id: contextId,
-    title: "FastAPI-style health check",
-    learning_objective: "Practice a predictable health-check response.",
-    instructions: "This server-owned teaching fixture is not source code from the repository.",
+    message: "Security challenge prepared. Nothing was saved.",
+    security_challenge_id: "fastapi-cors.v1",
+    security_challenge_context_id: contextId,
+    title: "Fix a permissive CORS policy",
+    learning_objective: "Practice restricting a FastAPI CORS policy to one explicit origin.",
+    instructions: "This server-owned teaching fixture is not source code from the inspected repository.",
     starter_code: starterCode,
-    constraints: ["Keep one healthz function.", "Return literal response fields."],
+    constraints: ["Keep four statements.", "Use an explicit origin."],
     relevant_evidence: [
       { id: "language:python", kind: "language", label: "Language: Python", detail: "Detected." },
       { id: "technology:fastapi", kind: "technology", label: "FastAPI", detail: "Detected." }
@@ -36,37 +50,38 @@ function availablePreparation(contextId = "a".repeat(64)) {
 const passedEvaluation = {
   persisted: false,
   passed: true,
-  message: "Lab evaluated through AST parsing only. Nothing was saved.",
+  message: "Security challenge evaluated through AST parsing only. Nothing was saved.",
   checks: [
-    { id: "syntax-valid.v1", passed: true, message: "Python syntax is valid." },
-    { id: "restricted-structure.v1", passed: true, message: "The fixture uses the supported function structure." },
-    { id: "literal-response-dictionary.v1", passed: true, message: "healthz returns a two-field literal dictionary." },
-    { id: "health-check-contract.v1", passed: true, message: "The health-check response matches the required fields." }
+    { id: "fastapi-cors.syntax-valid.v1", passed: true, message: "Python syntax is valid." },
+    { id: "fastapi-cors.fixture-structure.v1", passed: true, message: "The fixture has the supported structure." },
+    { id: "fastapi-cors.middleware-configuration.v1", passed: true, message: "CORSMiddleware is configured." },
+    { id: "fastapi-cors.allowed-origin.v1", passed: true, message: "The allowed origin is explicit." },
+    { id: "fastapi-cors.credentials-setting.v1", passed: true, message: "Credentials remain literal True." }
   ],
-  feedback: ["Your healthz teaching fixture matches the required deterministic response."],
+  feedback: ["Your fixture restricts the CORS origin."],
   inspection_limitations: ["Inspection is bounded."]
 };
 
 function renderPanel({
   repositoryUrl = "https://github.com/acme/learning-api",
   learnerLevel = "beginner",
-  assessmentReady = true
+  verifiedLabPassed = true
 }: {
   repositoryUrl?: string;
   learnerLevel?: "beginner" | "junior" | "intermediate";
-  assessmentReady?: boolean;
+  verifiedLabPassed?: boolean;
 } = {}) {
   return render(
-    <VerifiedLabPanel
+    <SecurityChallengePanel
       repositoryUrl={repositoryUrl}
       learnerLevel={learnerLevel}
-      assessmentReady={assessmentReady}
+      verifiedLabPassed={verifiedLabPassed}
     />
   );
 }
 
 async function prepareAvailable(fetchMock: ReturnType<typeof vi.fn>) {
-  fireEvent.click(screen.getByRole("button", { name: "Prepare verified lab" }));
+  fireEvent.click(screen.getByRole("button", { name: "Prepare security challenge" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   await screen.findByLabelText("Teaching fixture code");
 }
@@ -81,15 +96,14 @@ beforeEach(() => {
   vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
 });
 
-describe("VerifiedLabPanel", () => {
-  it("stays hidden before a successful assessment evaluation", () => {
-    renderPanel({ assessmentReady: false });
+describe("SecurityChallengePanel", () => {
+  it("is hidden until the verified lab has passed", () => {
+    renderPanel({ verifiedLabPassed: false });
 
-    expect(screen.queryByText("Verified coding lab")).toBeNull();
     expect(screen.queryByText("Verified security challenge")).toBeNull();
   });
 
-  it("prepares the lab with native fetch and shows the starter fixture", async () => {
+  it("prepares the challenge with native fetch and displays the server-owned fixture", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => availablePreparation()
@@ -100,7 +114,7 @@ describe("VerifiedLabPanel", () => {
     await prepareAvailable(fetchMock);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://api.example/api/v1/labs/fastapi-health-check/prepare",
+      "http://api.example/api/v1/security-challenges/fastapi-cors/prepare",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,7 +127,7 @@ describe("VerifiedLabPanel", () => {
     expect((screen.getByLabelText("Teaching fixture code") as HTMLTextAreaElement).value).toBe(starterCode);
   });
 
-  it("resets edited source, submits, shows loading, and renders a passing result", async () => {
+  it("shows loading, resets code, submits the exact context, and renders a passing result", async () => {
     let resolveEvaluation: ((value: unknown) => void) | undefined;
     const evaluationPromise = new Promise((resolve) => {
       resolveEvaluation = resolve;
@@ -126,7 +140,7 @@ describe("VerifiedLabPanel", () => {
     await prepareAvailable(fetchMock);
 
     const editor = screen.getByLabelText("Teaching fixture code") as HTMLTextAreaElement;
-    fireEvent.change(editor, { target: { value: "def healthz():\n    return {}\n" } });
+    fireEvent.change(editor, { target: { value: "invalid" } });
     fireEvent.click(screen.getByRole("button", { name: "Reset fixture" }));
     expect(editor.value).toBe(starterCode);
     fireEvent.change(editor, { target: { value: validCode } });
@@ -134,22 +148,21 @@ describe("VerifiedLabPanel", () => {
     expect((screen.getByRole("button", { name: "Verifying fixture..." }) as HTMLButtonElement).disabled).toBe(true);
     resolveEvaluation?.({ ok: true, json: async () => passedEvaluation });
 
-    await screen.findByText("Lab passed");
+    await screen.findByText("Security challenge passed");
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "http://api.example/api/v1/labs/fastapi-health-check/evaluate",
+      "http://api.example/api/v1/security-challenges/fastapi-cors/evaluate",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repository_url: "https://github.com/acme/learning-api",
           learner_level: "beginner",
-          lab_context_id: "a".repeat(64),
+          security_challenge_context_id: "a".repeat(64),
           source_code: validCode
         })
       }
     );
-    expect(screen.getByText("The health-check response matches the required fields.")).not.toBeNull();
-    expect(screen.getByText("Verified security challenge")).not.toBeNull();
+    expect(screen.getByText("The allowed origin is explicit.")).not.toBeNull();
   });
 
   it("shows unavailable, failed, and API-error states safely", async () => {
@@ -158,28 +171,26 @@ describe("VerifiedLabPanel", () => {
       json: async () => ({
         persisted: false,
         available: false,
-        message: "This lab is unavailable for the inspected repository.",
+        message: "This security challenge is unavailable for the inspected repository.",
         reason: "The deterministic inspection must confirm both Python and FastAPI.",
         inspection_limitations: ["Inspection is bounded."]
       })
     });
     vi.stubGlobal("fetch", unavailableFetch);
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Prepare verified lab" }));
-    await waitFor(() => expect(unavailableFetch).toHaveBeenCalledTimes(1));
-    await screen.findByText("Lab unavailable");
-    expect(screen.getByText("Lab unavailable")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Prepare security challenge" }));
+    await screen.findByText("Security challenge unavailable");
     expect(screen.queryByLabelText("Teaching fixture code")).toBeNull();
 
     cleanup();
     const failedEvaluation = {
       ...passedEvaluation,
       passed: false,
-      feedback: ["Use the required service value."],
+      feedback: ["Use the required origin."],
       checks: passedEvaluation.checks.map((check, index) => ({
         ...check,
         passed: index < 3,
-        message: index === 3 ? "Use the required status and service string values." : check.message
+        message: index === 3 ? "Use the required explicit origin." : check.message
       }))
     };
     const failureFetch = vi.fn()
@@ -189,50 +200,48 @@ describe("VerifiedLabPanel", () => {
     renderPanel();
     await prepareAvailable(failureFetch);
     fireEvent.click(screen.getByRole("button", { name: "Submit fixture" }));
-    await screen.findByText("Lab needs another attempt");
-    expect(screen.getByText("Use the required service value.")).not.toBeNull();
+    await screen.findByText("Security challenge needs another attempt");
+    expect(screen.getByText("Use the required origin.")).not.toBeNull();
 
     cleanup();
     const errorFetch = vi.fn().mockResolvedValue({
       ok: false,
-      json: async () => ({ detail: "Repository evidence changed. Prepare the lab again." })
+      json: async () => ({ detail: "Repository evidence changed. Prepare the security challenge again." })
     });
     vi.stubGlobal("fetch", errorFetch);
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Prepare verified lab" }));
-    expect(await screen.findByText("Repository evidence changed. Prepare the lab again.")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Prepare security challenge" }));
+    expect(await screen.findByText("Repository evidence changed. Prepare the security challenge again.")).not.toBeNull();
   });
 
-  it("clears prepared source, context, result, and errors when repository or learner level changes", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => availablePreparation("a".repeat(64)) })
-      .mockResolvedValueOnce({ ok: true, json: async () => availablePreparation("b".repeat(64)) });
+  it("removes and clears prepared state when a passing lab changes to failed", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => availablePreparation()
+    });
     vi.stubGlobal("fetch", fetchMock);
     const rendered = renderPanel();
     await prepareAvailable(fetchMock);
     expect(screen.getByLabelText("Teaching fixture code")).not.toBeNull();
 
     rendered.rerender(
-      <VerifiedLabPanel
-        repositoryUrl="https://github.com/acme/other-api"
+      <SecurityChallengePanel
+        repositoryUrl="https://github.com/acme/learning-api"
         learnerLevel="beginner"
-        assessmentReady={true}
+        verifiedLabPassed={false}
       />
     );
-    await waitFor(() => expect(screen.queryByLabelText("Teaching fixture code")).toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Prepare verified lab" }));
-    await screen.findByLabelText("Teaching fixture code");
-    fireEvent.click(screen.getByRole("button", { name: "Submit fixture" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(JSON.parse(fetchMock.mock.calls[2][1].body).lab_context_id).toBe("b".repeat(64));
+    expect(screen.queryByText("Verified security challenge")).toBeNull();
 
+    await waitFor(() => expect(screen.queryByLabelText("Teaching fixture code")).toBeNull());
     rendered.rerender(
-      <VerifiedLabPanel
-        repositoryUrl="https://github.com/acme/other-api"
-        learnerLevel="junior"
-        assessmentReady={true}
+      <SecurityChallengePanel
+        repositoryUrl="https://github.com/acme/learning-api"
+        learnerLevel="beginner"
+        verifiedLabPassed={true}
       />
     );
-    await waitFor(() => expect(screen.queryByLabelText("Teaching fixture code")).toBeNull());
+    expect(screen.getByRole("button", { name: "Prepare security challenge" })).not.toBeNull();
+    expect(screen.queryByLabelText("Teaching fixture code")).toBeNull();
   });
 });
