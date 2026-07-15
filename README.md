@@ -138,16 +138,17 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 3 adds deterministic, preview-only inspection for a validated public
-GitHub repository. The backend calls only GitHub's fixed REST API host, reads
-a bounded file tree plus a small manifest allow-list, and returns evidence for
-the detected stack. It never clones a repository or broadly downloads source
-files; inspection results are not saved.
+Phase 4 adds one preview-only architecture-orientation lesson after deterministic
+inspection of a validated public GitHub repository. The backend first creates a
+bounded evidence catalog from the existing GitHub inspection, then makes one
+structured OpenAI Responses API request. The lesson is checked against those
+evidence IDs before it is returned; deterministic inspection limitations remain
+server-owned. No project, repository result, prompt, or lesson is saved.
 
 The following are intentionally not implemented: authentication, GitHub
-repository cloning, model calls, lesson generation, code execution, security
-scanning, Ownership Score, demo data, database models, or migrations. The New
-Project flow does not create a project, project ID, or workspace.
+repository cloning, code execution, security scanning, Ownership Score, demo
+data, database models, or migrations. The New Project flow does not create a
+project, project ID, or workspace.
 
 ## Initial Repository Structure
 
@@ -189,7 +190,8 @@ Copy `.env.example` to `.env` and retain local values only. The API uses
 `CORS_ORIGINS` for the browser allow-list and `VITE_API_BASE_URL` for the
 browser's public API address. `GITHUB_TOKEN` is optional and backend-only: it
 can improve GitHub API limits, but is never sent to the browser or returned by
-the API. Do not add OpenAI credentials yet.
+the API. `OPENAI_API_KEY` and `OPENAI_MODEL` are backend-only and required only
+for lesson generation; never expose them through Vite variables or commit them.
 
 ## Development Principles
 

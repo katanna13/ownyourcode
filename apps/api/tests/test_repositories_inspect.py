@@ -16,6 +16,7 @@ from ownyourcode.modules.repositories.inspector import (
     MAX_MANIFEST_BYTES,
     RepositoryInspector,
 )
+from ownyourcode.modules.repositories.service import PublicRepositoryInspectionService
 
 
 def encoded_file(content: str, *, declared_size: int | None = None) -> dict[str, Any]:
@@ -49,9 +50,13 @@ def install_github_mock(
         transport=httpx.MockTransport(handler),
     )
     github_client = GitHubClient(token=token, client=mock_client)
+    inspection_service = PublicRepositoryInspectionService(
+        github_token=token,
+        client_factory=lambda **kwargs: github_client,
+    )
     monkeypatch.setattr(
-        "ownyourcode.modules.repositories.router.create_github_client",
-        lambda: github_client,
+        "ownyourcode.modules.repositories.router.create_repository_inspection_service",
+        lambda: inspection_service,
     )
 
 

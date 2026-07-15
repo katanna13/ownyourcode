@@ -82,7 +82,8 @@ fieldset {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #aab6c5;
@@ -116,6 +117,40 @@ textarea {
 
 .inspection ul {
   padding-left: 1.25rem;
+}
+
+.lesson-controls {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b7d8c4;
+}
+
+.lesson article {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-left: 3px solid #5a43d6;
+  background: #f7f5ff;
+}
+
+.lesson h4 {
+  margin: 0;
+}
+
+.evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-chip {
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  background: #e5e0ff;
+  font-size: 0.875rem;
 }
 
 .message--error {

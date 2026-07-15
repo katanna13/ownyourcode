@@ -79,6 +79,85 @@ function inspectionResponse() {
   };
 }
 
+function lessonResponse() {
+  return {
+    persisted: false,
+    message: "Lesson generated from inspected repository evidence. Nothing was saved.",
+    inspection_limitations: ["Inspection uses a bounded tree."],
+    evidence_catalog: [
+      {
+        id: "technology:fastapi",
+        kind: "technology",
+        label: "FastAPI",
+        detail: "Deterministically detected from a manifest."
+      },
+      {
+        id: "repository:name",
+        kind: "repository",
+        label: "Repository: acme/learning-api",
+        detail: "Public repository metadata."
+      },
+      {
+        id: "repository:default-branch",
+        kind: "repository",
+        label: "Default branch",
+        detail: "main"
+      },
+      {
+        id: "language:python",
+        kind: "language",
+        label: "Language: Python",
+        detail: "GitHub reported Python."
+      },
+      {
+        id: "file:pyproject.toml",
+        kind: "file",
+        label: "pyproject.toml",
+        detail: "A manifest."
+      }
+    ],
+    lesson: {
+      title: "Understand the learning API",
+      learning_objective: "Identify the framework and key architecture evidence.",
+      repository_summary: "This repository contains deterministic FastAPI evidence.",
+      repository_summary_evidence_ids: ["repository:name"],
+      concepts: [
+        {
+          title: "API framework",
+          explanation: "FastAPI is detected from a declared dependency in the bounded manifest evidence.",
+          why_it_matters: "Framework conventions guide routes and validation.",
+          evidence_ids: ["technology:fastapi"],
+          reflection_question: "Which route would you inspect first?"
+        },
+        {
+          title: "Python runtime",
+          explanation: "Python is reported by the deterministic inspection, giving a starting point for backend investigation.",
+          why_it_matters: "The runtime affects tooling and commands.",
+          evidence_ids: ["language:python"],
+          reflection_question: "Which Python command would you use?"
+        }
+      ],
+      architecture_walkthrough: [
+        {
+          step: "Start with the default branch and repository metadata before making assumptions.",
+          evidence_ids: ["repository:default-branch"]
+        },
+        {
+          step: "Then connect the manifest with the framework dependency evidence.",
+          evidence_ids: ["file:pyproject.toml"]
+        }
+      ],
+      knowledge_check_questions: [
+        "Which evidence proves FastAPI?",
+        "Why inspect a manifest first?"
+      ],
+      limitations_and_open_questions: [
+        "The model did not perform a full source-code review."
+      ]
+    }
+  };
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -137,7 +216,7 @@ describe("NewProjectPage", () => {
     fillNewIdeaForm();
     fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
 
-    const button = screen.getByRole("button", { name: "Validating…" });
+    const button = screen.getByRole("button", { name: "Validating..." });
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.example/api/v1/projects/preview",
@@ -260,7 +339,7 @@ describe("NewProjectPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
 
     const loadingButton = screen.getByRole("button", {
-      name: "Inspecting repository…"
+      name: "Inspecting repository..."
     });
     expect((loadingButton as HTMLButtonElement).disabled).toBe(true);
     expect(fetchMock).toHaveBeenLastCalledWith(
@@ -312,6 +391,118 @@ describe("NewProjectPage", () => {
 
     expect(
       await screen.findByText("GitHub rate limit reached. Please try again later.")
+    ).toBeTruthy();
+  });
+
+  it("generates a lesson with the selected learner context, loading state, and evidence", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
+    let resolveLesson: ((response: Response) => void) | undefined;
+    const lessonPromise = new Promise<Response>((resolve) => {
+      resolveLesson = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(repositoryPreviewResponse()), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(inspectionResponse()), { status: 200 })
+      )
+      .mockImplementationOnce(() => lessonPromise);
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+    fillRepositoryForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+    expect(await screen.findByText("Generate your first lesson")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Learner level"), {
+      target: { value: "junior" }
+    });
+    fireEvent.change(screen.getByLabelText("Learning goal (optional)"), {
+      target: { value: "Understand request validation." }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate first lesson" }));
+
+    const loadingButton = screen.getByRole("button", {
+      name: "Generating lesson..."
+    });
+    expect((loadingButton as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "http://api.example/api/v1/lessons/generate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repository_url: "https://github.com/acme/learning-api",
+          learner_level: "junior",
+          learning_goal: "Understand request validation."
+        })
+      }
+    );
+
+    resolveLesson?.(new Response(JSON.stringify(lessonResponse()), { status: 200 }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Understand the learning API" })
+    ).toBeTruthy();
+    expect(screen.getByText("FastAPI (technology:fastapi)")).toBeTruthy();
+    expect(screen.getByText("Inspection limitations (deterministic)")).toBeTruthy();
+    expect(screen.getAllByText("Inspection uses a bounded tree.")).toHaveLength(2);
+    expect(
+      screen.getByText("The model did not perform a full source-code review.")
+    ).toBeTruthy();
+  });
+
+  it("does not show lesson generation for a new idea and displays lesson API errors", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            validated: true,
+            persisted: false,
+            message: "Project details validated. Nothing was saved.",
+            project: {
+              name: "Study Planner",
+              description: "A focused planner for weekly study sessions.",
+              mode: "new_idea",
+              repository_url: null
+            }
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(repositoryPreviewResponse()), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(inspectionResponse()), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ detail: "Lesson generation is not configured on this server." }),
+          { status: 503 }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+    fillNewIdeaForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    await screen.findByText("Validated preview");
+    expect(screen.queryByText("Generate your first lesson")).toBeNull();
+
+    cleanup();
+    renderPage();
+    fillRepositoryForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Generate first lesson" }));
+
+    expect(
+      await screen.findByText("Lesson generation is not configured on this server.")
     ).toBeTruthy();
   });
 });
