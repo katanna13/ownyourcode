@@ -27,6 +27,58 @@ function fillNewIdeaForm() {
   });
 }
 
+function fillRepositoryForm() {
+  fillNewIdeaForm();
+  fireEvent.click(screen.getByLabelText("Existing repository"));
+  fireEvent.change(screen.getByLabelText("Public GitHub repository URL"), {
+    target: { value: "https://github.com/acme/learning-api" }
+  });
+}
+
+function repositoryPreviewResponse() {
+  return {
+    validated: true,
+    persisted: false,
+    message: "Project details validated. Nothing was saved.",
+    project: {
+      name: "Study Planner",
+      description: "A focused planner for weekly study sessions.",
+      mode: "existing_repository",
+      repository_url: "https://github.com/acme/learning-api"
+    }
+  };
+}
+
+function inspectionResponse() {
+  return {
+    persisted: false,
+    message: "Repository inspected. Nothing was saved.",
+    repository: {
+      name: "learning-api",
+      full_name: "acme/learning-api",
+      description: "Learning API",
+      default_branch: "main",
+      primary_language: "Python",
+      html_url: "https://github.com/acme/learning-api"
+    },
+    languages: [{ name: "Python", bytes: 1200 }],
+    technologies: [
+      {
+        key: "fastapi",
+        label: "FastAPI",
+        evidence: ["pyproject.toml: dependency fastapi"]
+      }
+    ],
+    paths: {
+      inspected_count: 3,
+      returned: ["pyproject.toml"],
+      truncated: false
+    },
+    important_files: [{ path: "pyproject.toml", kind: "manifest" }],
+    limitations: ["Inspection uses a bounded tree."]
+  };
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -148,5 +200,118 @@ describe("NewProjectPage", () => {
     });
     expect(screen.getByText("Repository URL is required.")).toBeTruthy();
     expect(screen.getByText("Description is too short.")).toBeTruthy();
+  });
+
+  it("shows inspection only after an existing-repository preview", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            validated: true,
+            persisted: false,
+            message: "Project details validated. Nothing was saved.",
+            project: {
+              name: "Study Planner",
+              description: "A focused planner for weekly study sessions.",
+              mode: "new_idea",
+              repository_url: null
+            }
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(repositoryPreviewResponse()), { status: 200 })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+    fillNewIdeaForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    await screen.findByText("Validated preview");
+    expect(screen.queryByRole("button", { name: "Inspect repository" })).toBeNull();
+
+    cleanup();
+    renderPage();
+    fillRepositoryForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    expect(await screen.findByRole("button", { name: "Inspect repository" })).toBeTruthy();
+  });
+
+  it("posts an inspection request, shows loading, and renders the result", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
+    let resolveInspection: ((response: Response) => void) | undefined;
+    const inspectionPromise = new Promise<Response>((resolve) => {
+      resolveInspection = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(repositoryPreviewResponse()), { status: 200 })
+      )
+      .mockImplementationOnce(() => inspectionPromise);
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+    fillRepositoryForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+
+    const loadingButton = screen.getByRole("button", {
+      name: "Inspecting repository…"
+    });
+    expect((loadingButton as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "http://api.example/api/v1/repositories/inspect",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repository_url: "https://github.com/acme/learning-api"
+        })
+      }
+    );
+
+    resolveInspection?.(
+      new Response(JSON.stringify(inspectionResponse()), { status: 200 })
+    );
+
+    expect(await screen.findByText("Repository inspection")).toBeTruthy();
+    expect(screen.getByText("acme/learning-api")).toBeTruthy();
+    expect(screen.getByText("FastAPI")).toBeTruthy();
+    expect(
+      screen.getByText("pyproject.toml: dependency fastapi")
+    ).toBeTruthy();
+    expect(screen.getByText("pyproject.toml (manifest)")).toBeTruthy();
+    expect(screen.getByText("Inspection uses a bounded tree.")).toBeTruthy();
+  });
+
+  it("renders a useful repository-inspection API error", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://api.example");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(repositoryPreviewResponse()), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ detail: "GitHub rate limit reached. Please try again later." }),
+            { status: 429 }
+          )
+        )
+    );
+
+    renderPage();
+    fillRepositoryForm();
+    fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+
+    expect(
+      await screen.findByText("GitHub rate limit reached. Please try again later.")
+    ).toBeTruthy();
   });
 });

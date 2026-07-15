@@ -15,12 +15,37 @@ type ProjectPreviewResponse = {
   };
 };
 
-function validationMessages(payload: unknown): string[] {
+type RepositoryInspectionResponse = {
+  persisted: boolean;
+  message: string;
+  repository: {
+    name: string;
+    full_name: string;
+    description: string | null;
+    default_branch: string;
+    primary_language: string | null;
+    html_url: string;
+  };
+  languages: Array<{ name: string; bytes: number }>;
+  technologies: Array<{ key: string; label: string; evidence: string[] }>;
+  paths: {
+    inspected_count: number;
+    returned: string[];
+    truncated: boolean;
+  };
+  important_files: Array<{ path: string; kind: string }>;
+  limitations: string[];
+};
+
+function responseMessages(payload: unknown): string[] {
   if (typeof payload !== "object" || payload === null || !("detail" in payload)) {
     return [];
   }
 
   const { detail } = payload;
+  if (typeof detail === "string") {
+    return [detail];
+  }
   if (!Array.isArray(detail)) {
     return [];
   }
@@ -47,10 +72,16 @@ export function NewProjectPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [preview, setPreview] = useState<ProjectPreviewResponse | null>(null);
+  const [isInspecting, setIsInspecting] = useState(false);
+  const [inspectionErrors, setInspectionErrors] = useState<string[]>([]);
+  const [inspection, setInspection] =
+    useState<RepositoryInspectionResponse | null>(null);
 
   function selectMode(nextMode: ProjectMode) {
     setMode(nextMode);
     setErrors([]);
+    setInspectionErrors([]);
+    setInspection(null);
 
     if (nextMode === "new_idea") {
       setRepositoryUrl("");
@@ -62,6 +93,8 @@ export function NewProjectPage() {
     setIsSubmitting(true);
     setErrors([]);
     setPreview(null);
+    setInspectionErrors([]);
+    setInspection(null);
 
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "");
     if (!apiBaseUrl) {
@@ -88,7 +121,7 @@ export function NewProjectPage() {
       const payload: unknown = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const messages = validationMessages(payload);
+        const messages = responseMessages(payload);
         setErrors(
           messages.length > 0
             ? messages
@@ -102,6 +135,53 @@ export function NewProjectPage() {
       setErrors(["The API could not be reached. Please try again."]);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function inspectRepository() {
+    if (
+      preview?.project.mode !== "existing_repository" ||
+      !preview.project.repository_url
+    ) {
+      return;
+    }
+
+    setIsInspecting(true);
+    setInspectionErrors([]);
+    setInspection(null);
+
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "");
+    if (!apiBaseUrl) {
+      setInspectionErrors(["The API URL is not configured."]);
+      setIsInspecting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/repositories/inspect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ repository_url: preview.project.repository_url })
+      });
+      const payload: unknown = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const messages = responseMessages(payload);
+        setInspectionErrors(
+          messages.length > 0
+            ? messages
+            : ["The repository could not be inspected. Please try again."]
+        );
+        return;
+      }
+
+      setInspection(payload as RepositoryInspectionResponse);
+    } catch {
+      setInspectionErrors(["The API could not be reached. Please try again."]);
+    } finally {
+      setIsInspecting(false);
     }
   }
 
@@ -220,6 +300,91 @@ export function NewProjectPage() {
               </>
             )}
           </dl>
+
+          {preview.project.mode === "existing_repository" &&
+            preview.project.repository_url && (
+              <button
+                className="button"
+                type="button"
+                onClick={inspectRepository}
+                disabled={isInspecting}
+              >
+                {isInspecting ? "Inspecting repository…" : "Inspect repository"}
+              </button>
+            )}
+        </section>
+      )}
+
+      {inspectionErrors.length > 0 && (
+        <section className="message message--error" role="alert">
+          <h2>Repository inspection could not finish</h2>
+          <ul>
+            {inspectionErrors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {inspection && (
+        <section className="message message--success inspection" role="status">
+          <h2>Repository inspection</h2>
+          <p>{inspection.message}</p>
+          <dl>
+            <dt>Repository</dt>
+            <dd>
+              <a href={inspection.repository.html_url}>{inspection.repository.full_name}</a>
+            </dd>
+            <dt>Default branch</dt>
+            <dd>{inspection.repository.default_branch}</dd>
+            <dt>Primary language</dt>
+            <dd>{inspection.repository.primary_language ?? "Not reported"}</dd>
+          </dl>
+
+          <h3>Languages</h3>
+          <ul>
+            {inspection.languages.map((language) => (
+              <li key={language.name}>
+                {language.name}: {language.bytes} bytes
+              </li>
+            ))}
+          </ul>
+
+          <h3>Detected technologies</h3>
+          <ul>
+            {inspection.technologies.map((technology) => (
+              <li key={technology.key}>
+                <strong>{technology.label}</strong>
+                <ul>
+                  {technology.evidence.map((evidence) => (
+                    <li key={evidence}>{evidence}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+
+          <h3>Important files</h3>
+          <ul>
+            {inspection.important_files.map((file) => (
+              <li key={file.path}>
+                {file.path} ({file.kind})
+              </li>
+            ))}
+          </ul>
+
+          <h3>Path coverage</h3>
+          <p>
+            Inspected {inspection.paths.inspected_count} paths
+            {inspection.paths.truncated ? "; path results were truncated." : "."}
+          </p>
+
+          <h3>Limitations</h3>
+          <ul>
+            {inspection.limitations.map((limitation) => (
+              <li key={limitation}>{limitation}</li>
+            ))}
+          </ul>
         </section>
       )}
 

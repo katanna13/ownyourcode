@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         "postgresql+psycopg://ownyourcode:ownyourcode@localhost:5432/ownyourcode"
     )
     cors_origins: list[str] = ["http://localhost:5173"]
+    github_token: str | None = None
 
 
 @lru_cache

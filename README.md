@@ -138,9 +138,11 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 2 adds a real, preview-only New Project intake flow. The React form
-submits JSON to FastAPI, which validates and normalizes the request before
-returning a typed response that explicitly states nothing was saved.
+Phase 3 adds deterministic, preview-only inspection for a validated public
+GitHub repository. The backend calls only GitHub's fixed REST API host, reads
+a bounded file tree plus a small manifest allow-list, and returns evidence for
+the detected stack. It never clones a repository or broadly downloads source
+files; inspection results are not saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, model calls, lesson generation, code execution, security
@@ -183,10 +185,11 @@ The frontend is available at `http://localhost:5173`; the FastAPI docs are at
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and retain local values only. Phase 2 also uses
-`CORS_ORIGINS` for the API allow-list and `VITE_API_BASE_URL` for the browser's
-public API address. Neither value is a secret; do not add OpenAI or GitHub
-credentials yet.
+Copy `.env.example` to `.env` and retain local values only. The API uses
+`CORS_ORIGINS` for the browser allow-list and `VITE_API_BASE_URL` for the
+browser's public API address. `GITHUB_TOKEN` is optional and backend-only: it
+can improve GitHub API limits, but is never sent to the browser or returned by
+the API. Do not add OpenAI credentials yet.
 
 ## Development Principles
 
