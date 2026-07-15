@@ -138,13 +138,12 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 5 adds a preview-only knowledge check after an architecture-orientation
-lesson. It prepares three repository-evidence-grounded questions, grades the
-multiple-choice and single-evidence answers deterministically, and makes one
-bounded OpenAI Responses API request only to evaluate the learner's explain-back
-answer. A recomputed context fingerprint detects stale inspection evidence;
-deterministic inspection limitations remain server-owned. No project,
-repository result, prompt, lesson, question, answer, or score is saved.
+Phase 6 adds one preview-only, AST-verified FastAPI-style health-check teaching
+fixture after an assessment evaluation. It is available only when fresh
+deterministic evidence confirms Python and FastAPI, then parses a bounded
+learner submission without running it. The fixture is server-owned and never
+claimed to be repository source. No project, repository result, prompt,
+lesson, question, answer, source code, or score is saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, code execution, security scanning, Ownership Score, demo

@@ -1,5 +1,7 @@
 import { FormEvent, useState } from "react";
 
+import { VerifiedLabPanel } from "./VerifiedLabPanel";
+
 type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type MultipleChoiceQuestion = {
@@ -326,6 +328,11 @@ export function AssessmentPanel({
           <ul>{result.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
+      <VerifiedLabPanel
+        repositoryUrl={repositoryUrl}
+        learnerLevel={learnerLevel}
+        assessmentReady={Boolean(result)}
+      />
     </section>
   );
 }

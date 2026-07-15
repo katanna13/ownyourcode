@@ -143,6 +143,32 @@ textarea {
   margin-bottom: 0.5rem;
 }
 
+.verified-lab {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b7d8c4;
+}
+
+.verified-lab-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.verified-lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.verified-lab-actions .button {
+  margin-top: 0;
+}
+
+.lab-checks {
+  padding-left: 1.25rem;
+}
+
 .lesson article {
   margin: 1.5rem 0;
   padding: 1rem;
