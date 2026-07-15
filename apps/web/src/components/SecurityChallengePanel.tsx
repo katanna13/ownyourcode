@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+import { OralDefensePanel } from "./OralDefensePanel";
+
 type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type RelevantEvidence = {
@@ -50,6 +52,7 @@ type SecurityChallengePanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
   verifiedLabPassed: boolean;
+  assessmentScore: { earned_points: number; total_points: number } | null;
 };
 
 function apiBaseUrl(): string | null {
@@ -83,7 +86,8 @@ function responseMessages(payload: unknown): string[] {
 export function SecurityChallengePanel({
   repositoryUrl,
   learnerLevel,
-  verifiedLabPassed
+  verifiedLabPassed,
+  assessmentScore
 }: SecurityChallengePanelProps) {
   const [preparation, setPreparation] =
     useState<SecurityChallengePreparation | null>(null);
@@ -306,6 +310,13 @@ export function SecurityChallengePanel({
           <ul>{evaluation.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
+      <OralDefensePanel
+        repositoryUrl={repositoryUrl}
+        learnerLevel={learnerLevel}
+        assessmentScore={assessmentScore}
+        verifiedLabPassed={verifiedLabPassed}
+        securityChallengePassed={Boolean(evaluation?.passed)}
+      />
     </section>
   );
 }

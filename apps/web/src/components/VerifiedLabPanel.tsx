@@ -50,6 +50,7 @@ type VerifiedLabPanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
   assessmentReady: boolean;
+  assessmentScore: { earned_points: number; total_points: number } | null;
 };
 
 function apiBaseUrl(): string | null {
@@ -83,7 +84,8 @@ function responseMessages(payload: unknown): string[] {
 export function VerifiedLabPanel({
   repositoryUrl,
   learnerLevel,
-  assessmentReady
+  assessmentReady,
+  assessmentScore
 }: VerifiedLabPanelProps) {
   const [preparation, setPreparation] = useState<LabPreparation | null>(null);
   const [sourceCode, setSourceCode] = useState("");
@@ -308,6 +310,7 @@ export function VerifiedLabPanel({
         repositoryUrl={repositoryUrl}
         learnerLevel={learnerLevel}
         verifiedLabPassed={Boolean(evaluation?.passed)}
+        assessmentScore={assessmentScore}
       />
     </section>
   );

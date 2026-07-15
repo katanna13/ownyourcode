@@ -332,6 +332,7 @@ export function AssessmentPanel({
         repositoryUrl={repositoryUrl}
         learnerLevel={learnerLevel}
         assessmentReady={Boolean(result)}
+        assessmentScore={result?.score ?? null}
       />
     </section>
   );

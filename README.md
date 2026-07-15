@@ -138,13 +138,15 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 7 adds one preview-only, AST-verified FastAPI CORS teaching fixture after
-a passing verified lab. It is available only when fresh deterministic evidence
-confirms Python and FastAPI, then parses a bounded learner submission without
-running it. The fixture is server-owned and never claimed to be repository
-source; it teaches a CORS configuration concept but does not scan the
-repository or prove a production-ready configuration. No project, repository
-result, prompt, lesson, question, answer, source code, or score is saved.
+Phase 8 adds one evidence-grounded architecture oral defense after a passing
+security challenge. A bounded OpenAI structured-output call evaluates only the
+learner's answer, while deterministic repository evidence remains the grounding
+authority. The browser then calculates a Preview Ownership Score from the
+current in-memory assessment, verified-lab, security-challenge, and oral-
+defense results. It is not persisted, an authenticated certification, or proof
+of completion after a refresh, another browser, or another device. No project,
+repository result, prompt, lesson, question, answer, source code, or score is
+saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, code execution, security scanning, Ownership Score, demo

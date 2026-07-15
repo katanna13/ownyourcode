@@ -195,6 +195,27 @@ textarea {
   padding-left: 1.25rem;
 }
 
+.oral-defense {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b7d8c4;
+}
+
+.oral-defense-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.session-disclaimer {
+  color: #505050;
+  font-size: 0.9rem;
+}
+
+.preview-score {
+  margin-top: 1rem;
+}
+
 .lesson article {
   margin: 1.5rem 0;
   padding: 1rem;
