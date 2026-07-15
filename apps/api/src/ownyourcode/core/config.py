@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://ownyourcode:ownyourcode@localhost:5432/ownyourcode"
     )
+    cors_origins: list[str] = ["http://localhost:5173"]
 
 
 @lru_cache

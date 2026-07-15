@@ -138,14 +138,14 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 1 provides a runnable product skeleton: a React frontend with three
-routes, a FastAPI liveness endpoint, PostgreSQL and SQLAlchemy configuration,
-Docker Compose, and basic tests. Project creation and persistence are not
-implemented yet.
+Phase 2 adds a real, preview-only New Project intake flow. The React form
+submits JSON to FastAPI, which validates and normalizes the request before
+returning a typed response that explicitly states nothing was saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, model calls, lesson generation, code execution, security
-scanning, Ownership Score, demo data, database models, or migrations.
+scanning, Ownership Score, demo data, database models, or migrations. The New
+Project flow does not create a project, project ID, or workspace.
 
 ## Initial Repository Structure
 
@@ -183,9 +183,10 @@ The frontend is available at `http://localhost:5173`; the FastAPI docs are at
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and retain local values only. Phase 1 uses
-`APP_ENV`, PostgreSQL credentials, and `DATABASE_URL`; it does not require
-OpenAI or GitHub credentials.
+Copy `.env.example` to `.env` and retain local values only. Phase 2 also uses
+`CORS_ORIGINS` for the API allow-list and `VITE_API_BASE_URL` for the browser's
+public API address. Neither value is a secret; do not add OpenAI or GitHub
+credentials yet.
 
 ## Development Principles
 
