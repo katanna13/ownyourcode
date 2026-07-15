@@ -138,12 +138,13 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 4 adds one preview-only architecture-orientation lesson after deterministic
-inspection of a validated public GitHub repository. The backend first creates a
-bounded evidence catalog from the existing GitHub inspection, then makes one
-structured OpenAI Responses API request. The lesson is checked against those
-evidence IDs before it is returned; deterministic inspection limitations remain
-server-owned. No project, repository result, prompt, or lesson is saved.
+Phase 5 adds a preview-only knowledge check after an architecture-orientation
+lesson. It prepares three repository-evidence-grounded questions, grades the
+multiple-choice and single-evidence answers deterministically, and makes one
+bounded OpenAI Responses API request only to evaluate the learner's explain-back
+answer. A recomputed context fingerprint detects stale inspection evidence;
+deterministic inspection limitations remain server-owned. No project,
+repository result, prompt, lesson, question, answer, or score is saved.
 
 The following are intentionally not implemented: authentication, GitHub
 repository cloning, code execution, security scanning, Ownership Score, demo

@@ -1,6 +1,8 @@
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { AssessmentPanel } from "../components/AssessmentPanel";
+
 type ProjectMode = "existing_repository" | "new_idea";
 type LearnerLevel = "beginner" | "junior" | "intermediate";
 
@@ -420,6 +422,13 @@ export function NewProjectPage() {
           <ul>{lesson.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
           <h3>Lesson limitations and open questions</h3>
           <ul>{lesson.lesson.limitations_and_open_questions.map((item) => <li key={item}>{item}</li>)}</ul>
+          {preview?.project.repository_url && (
+            <AssessmentPanel
+              repositoryUrl={preview.project.repository_url}
+              learnerLevel={learnerLevel}
+              lessonReady={Boolean(lesson)}
+            />
+          )}
         </section>
       )}
 

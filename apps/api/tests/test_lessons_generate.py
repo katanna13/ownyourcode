@@ -354,7 +354,8 @@ def test_missing_openai_configuration_prevents_github_and_openai_calls() -> None
     service = LessonGenerationService(
         repository_inspection_service=inspection_service,  # type: ignore[arg-type]
         openai_client=OpenAILessonClient(
-            Settings(), client_factory=client_factory  # type: ignore[arg-type]
+            Settings(openai_api_key=None, openai_model=None),  # type: ignore[arg-type]
+            client_factory=client_factory,
         ),
     )
 

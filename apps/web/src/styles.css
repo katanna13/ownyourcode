@@ -127,6 +127,22 @@ textarea {
   border-top: 1px solid #b7d8c4;
 }
 
+.assessment {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b7d8c4;
+}
+
+.assessment-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.assessment h4 {
+  margin-bottom: 0.5rem;
+}
+
 .lesson article {
   margin: 1.5rem 0;
   padding: 1rem;
