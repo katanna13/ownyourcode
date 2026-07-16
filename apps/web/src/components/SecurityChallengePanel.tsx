@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { OralDefensePanel } from "./OralDefensePanel";
+import { CheckResultList } from "./CheckResultList";
+import { CodeFixtureEditor } from "./CodeFixtureEditor";
+import { LearnerLevel, WorkspaceProgressReporter } from "../types/workspace";
 
-type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type RelevantEvidence = {
   id: string;
@@ -52,7 +53,7 @@ type SecurityChallengePanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
   verifiedLabPassed: boolean;
-  assessmentScore: { earned_points: number; total_points: number } | null;
+  progressReporter?: WorkspaceProgressReporter;
 };
 
 function apiBaseUrl(): string | null {
@@ -87,7 +88,7 @@ export function SecurityChallengePanel({
   repositoryUrl,
   learnerLevel,
   verifiedLabPassed,
-  assessmentScore
+  progressReporter
 }: SecurityChallengePanelProps) {
   const [preparation, setPreparation] =
     useState<SecurityChallengePreparation | null>(null);
@@ -108,6 +109,12 @@ export function SecurityChallengePanel({
     setIsPreparing(false);
     setIsSubmitting(false);
   }, [repositoryUrl, learnerLevel, verifiedLabPassed]);
+
+  useEffect(() => {
+    if (evaluation) {
+      progressReporter?.reportSecurityChallenge(evaluation.passed);
+    }
+  }, [evaluation, progressReporter]);
 
   if (!verifiedLabPassed) {
     return null;
@@ -237,9 +244,9 @@ export function SecurityChallengePanel({
   }
 
   return (
-    <section className="security-challenge" aria-labelledby="security-challenge-title">
+    <section className="security-challenge activity-card" id="secure" aria-labelledby="security-challenge-title">
       <h3 id="security-challenge-title">Verified security challenge</h3>
-      <p>Practice a server-owned CORS teaching fixture for this FastAPI-oriented stack. Nothing is saved.</p>
+      <p>Practice a server-owned CORS teaching fixture for this FastAPI-oriented stack. This is not a repository security scan. Nothing is saved.</p>
 
       {!preparation && (
         <button className="button" type="button" onClick={prepareChallenge} disabled={isPreparing}>
@@ -272,24 +279,16 @@ export function SecurityChallengePanel({
           <ul>{preparation.relevant_evidence.map((item) => <li key={item.id}>{item.label} ({item.id})</li>)}</ul>
           <h5>Constraints</h5>
           <ul>{preparation.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul>
-          <label className="field" htmlFor="security-challenge-source">
-            Teaching fixture code
-            <textarea
-              id="security-challenge-source"
-              value={sourceCode}
-              maxLength={preparation.maximum_source_length}
-              onChange={(event) => setSourceCode(event.target.value)}
-            />
-          </label>
-          <p>Maximum source length: {preparation.maximum_source_length} characters.</p>
-          <div className="security-challenge-actions">
-            <button className="button" type="button" onClick={resetFixture} disabled={isSubmitting}>
-              Reset fixture
-            </button>
-            <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Verifying fixture..." : "Submit fixture"}
-            </button>
-          </div>
+          <CodeFixtureEditor
+            id="security-challenge-source"
+            value={sourceCode}
+            maximumLength={preparation.maximum_source_length}
+            onChange={setSourceCode}
+            onReset={resetFixture}
+            isSubmitting={isSubmitting}
+            submitLabel="Submit fixture"
+            submittingLabel="Verifying fixture..."
+          />
         </form>
       )}
 
@@ -297,26 +296,13 @@ export function SecurityChallengePanel({
         <section className={`message ${evaluation.passed ? "message--success" : "message--error"}`} role="status">
           <h4>{evaluation.passed ? "Security challenge passed" : "Security challenge needs another attempt"}</h4>
           <p>{evaluation.message}</p>
-          <ul className="security-challenge-checks">
-            {evaluation.checks.map((check) => (
-              <li key={check.id}>
-                <strong>{check.passed ? "Passed" : "Not passed"}:</strong> {check.message}
-              </li>
-            ))}
-          </ul>
+          <CheckResultList checks={evaluation.checks} />
           <h5>Feedback</h5>
           <ul>{evaluation.feedback.map((item) => <li key={item}>{item}</li>)}</ul>
           <h5>Inspection limitations</h5>
           <ul>{evaluation.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
-      <OralDefensePanel
-        repositoryUrl={repositoryUrl}
-        learnerLevel={learnerLevel}
-        assessmentScore={assessmentScore}
-        verifiedLabPassed={verifiedLabPassed}
-        securityChallengePassed={Boolean(evaluation?.passed)}
-      />
     </section>
   );
 }

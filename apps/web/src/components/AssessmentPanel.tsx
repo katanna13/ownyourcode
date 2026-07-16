@@ -1,8 +1,8 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
-import { VerifiedLabPanel } from "./VerifiedLabPanel";
+import { StatusBadge } from "./StatusBadge";
+import { LearnerLevel, WorkspaceProgressReporter } from "../types/workspace";
 
-type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type MultipleChoiceQuestion = {
   id: "architecture-orientation.mcq.statement.v1";
@@ -62,6 +62,8 @@ type AssessmentPanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
   lessonReady: boolean;
+  assessmentContextVersion?: number;
+  progressReporter?: WorkspaceProgressReporter;
 };
 
 function apiBaseUrl(): string | null {
@@ -95,7 +97,9 @@ function responseMessages(payload: unknown): string[] {
 export function AssessmentPanel({
   repositoryUrl,
   learnerLevel,
-  lessonReady
+  lessonReady,
+  assessmentContextVersion = 0,
+  progressReporter
 }: AssessmentPanelProps) {
   const [questions, setQuestions] = useState<AssessmentQuestionsResponse | null>(null);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -106,6 +110,24 @@ export function AssessmentPanel({
   const [explainBack, setExplainBack] = useState("");
   const [explainEvidenceIds, setExplainEvidenceIds] = useState<string[]>([]);
   const [result, setResult] = useState<AssessmentEvaluationResponse | null>(null);
+
+  useEffect(() => {
+    if (result) {
+      progressReporter?.reportAssessment(result.score);
+    }
+  }, [progressReporter, result]);
+
+  useEffect(() => {
+    setQuestions(null);
+    setIsLoadingQuestions(false);
+    setIsSubmitting(false);
+    setErrors([]);
+    setSelectedOptionId("");
+    setSelectedEvidenceId("");
+    setExplainBack("");
+    setExplainEvidenceIds([]);
+    setResult(null);
+  }, [assessmentContextVersion]);
 
   if (!lessonReady) {
     return null;
@@ -235,7 +257,7 @@ export function AssessmentPanel({
   );
 
   return (
-    <section className="assessment" aria-labelledby="assessment-title">
+    <section className="assessment activity-card" id="assess" aria-labelledby="assessment-title">
       <h3 id="assessment-title">Check your understanding of the repository orientation.</h3>
       <p>This evaluates the confirmed repository evidence. Nothing is saved.</p>
       {!questions && (
@@ -253,6 +275,7 @@ export function AssessmentPanel({
         <form className="assessment-form" onSubmit={submitAnswers}>
           <fieldset>
             <legend>{multipleChoice.prompt}</legend>
+            <div className="question-meta"><StatusBadge tone="current">Question 1 of 3</StatusBadge><StatusBadge tone="neutral">Deterministic grading</StatusBadge></div>
             {multipleChoice.options.map((option) => (
               <label className="choice" key={option.id}>
                 <input
@@ -268,6 +291,7 @@ export function AssessmentPanel({
           </fieldset>
           <fieldset>
             <legend>{evidenceSelection.prompt}</legend>
+            <div className="question-meta"><StatusBadge tone="current">Question 2 of 3</StatusBadge><StatusBadge tone="neutral">Deterministic grading</StatusBadge></div>
             {evidenceSelection.evidence_choices.map((choice) => (
               <label className="choice" key={choice.id}>
                 <input
@@ -283,6 +307,7 @@ export function AssessmentPanel({
           </fieldset>
           <fieldset>
             <legend>{explainBackQuestion.prompt}</legend>
+            <div className="question-meta"><StatusBadge tone="current">Question 3 of 3</StatusBadge><StatusBadge tone="neutral">Model-evaluated explain-back</StatusBadge></div>
             <label className="field" htmlFor="explain-back-answer">
               Your explanation
               <textarea
@@ -314,10 +339,11 @@ export function AssessmentPanel({
         </form>
       )}
       {result && (
-        <section className="message message--success" role="status">
+        <section className="feedback-panel" role="status">
           <h4>Assessment feedback</h4>
           <p>{result.message}</p>
           <p><strong>Score:</strong> {result.score.earned_points} / {result.score.total_points}</p>
+          <p className="feedback-panel__note">The first two responses are graded deterministically. The explain-back response is evaluated against its bounded rubric.</p>
           <ul>
             {result.feedback.map((feedback) => (
               <li key={feedback.question_id}>{feedback.message} ({feedback.earned_points}/{feedback.max_points})</li>
@@ -328,12 +354,6 @@ export function AssessmentPanel({
           <ul>{result.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
-      <VerifiedLabPanel
-        repositoryUrl={repositoryUrl}
-        learnerLevel={learnerLevel}
-        assessmentReady={Boolean(result)}
-        assessmentScore={result?.score ?? null}
-      />
     </section>
   );
 }

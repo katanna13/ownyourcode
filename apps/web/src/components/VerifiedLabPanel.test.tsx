@@ -11,7 +11,6 @@ import { VerifiedLabPanel } from "./VerifiedLabPanel";
 
 const starterCode = 'def healthz():\n    return {"status": "ok"}\n';
 const validCode = 'def healthz():\n    return {"status": "ok", "service": "ownyourcode-api"}\n';
-const assessmentScore = { earned_points: 4, total_points: 4 };
 
 function availablePreparation(contextId = "a".repeat(64)) {
   return {
@@ -62,7 +61,6 @@ function renderPanel({
       repositoryUrl={repositoryUrl}
       learnerLevel={learnerLevel}
       assessmentReady={assessmentReady}
-      assessmentScore={assessmentScore}
     />
   );
 }
@@ -113,6 +111,8 @@ describe("VerifiedLabPanel", () => {
       }
     );
     expect((screen.getByLabelText("Teaching fixture code") as HTMLTextAreaElement).value).toBe(starterCode);
+    expect(screen.getByText("Teaching fixture — not repository source")).toBeTruthy();
+    expect(screen.getByText("AST parsing only; learner code is never executed.")).toBeTruthy();
   });
 
   it("resets edited source, submits, shows loading, and renders a passing result", async () => {
@@ -151,7 +151,7 @@ describe("VerifiedLabPanel", () => {
       }
     );
     expect(screen.getByText("The health-check response matches the required fields.")).not.toBeNull();
-    expect(screen.getByText("Verified security challenge")).not.toBeNull();
+    expect(screen.queryByText("Verified security challenge")).toBeNull();
   });
 
   it("shows unavailable, failed, and API-error states safely", async () => {
@@ -219,7 +219,6 @@ describe("VerifiedLabPanel", () => {
         repositoryUrl="https://github.com/acme/other-api"
         learnerLevel="beginner"
         assessmentReady={true}
-        assessmentScore={assessmentScore}
       />
     );
     await waitFor(() => expect(screen.queryByLabelText("Teaching fixture code")).toBeNull());
@@ -234,7 +233,6 @@ describe("VerifiedLabPanel", () => {
         repositoryUrl="https://github.com/acme/other-api"
         learnerLevel="junior"
         assessmentReady={true}
-        assessmentScore={assessmentScore}
       />
     );
     await waitFor(() => expect(screen.queryByLabelText("Teaching fixture code")).toBeNull());

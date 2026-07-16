@@ -17,6 +17,8 @@ describe("LandingPage", () => {
         name: "Understand the software you build with AI."
       })
     ).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Learn.*Verify.*Defend/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Start a project" })).toHaveProperty(
       "href",
       "http://localhost:3000/projects/new"

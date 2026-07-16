@@ -358,13 +358,13 @@ describe("NewProjectPage", () => {
     );
 
     expect(await screen.findByText("Repository inspection")).toBeTruthy();
-    expect(screen.getByText("acme/learning-api")).toBeTruthy();
+    expect(screen.getAllByText("acme/learning-api").length).toBeGreaterThan(0);
     expect(screen.getByText("FastAPI")).toBeTruthy();
     expect(
       screen.getByText("pyproject.toml: dependency fastapi")
     ).toBeTruthy();
-    expect(screen.getByText("pyproject.toml (manifest)")).toBeTruthy();
-    expect(screen.getByText("Inspection uses a bounded tree.")).toBeTruthy();
+    expect(screen.getByText("pyproject.toml").closest("li")?.textContent).toContain("manifest");
+    expect(screen.getAllByText("Inspection uses a bounded tree.")).toHaveLength(2);
   });
 
   it("renders a useful repository-inspection API error", async () => {
@@ -415,6 +415,7 @@ describe("NewProjectPage", () => {
     fillRepositoryForm();
     fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
     fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue to lesson" }));
     expect(await screen.findByText("Generate your first lesson")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Learner level"), {
       target: { value: "junior" }
@@ -446,9 +447,9 @@ describe("NewProjectPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Understand the learning API" })
     ).toBeTruthy();
-    expect(screen.getByText("FastAPI (technology:fastapi)")).toBeTruthy();
+    expect(screen.getAllByText("technology:fastapi")).toHaveLength(2);
     expect(screen.getByText("Inspection limitations (deterministic)")).toBeTruthy();
-    expect(screen.getAllByText("Inspection uses a bounded tree.")).toHaveLength(2);
+    expect(screen.getAllByText("Inspection uses a bounded tree.")).toHaveLength(3);
     expect(
       screen.getByText("The model did not perform a full source-code review.")
     ).toBeTruthy();
@@ -499,6 +500,7 @@ describe("NewProjectPage", () => {
     fillRepositoryForm();
     fireEvent.click(screen.getByRole("button", { name: "Validate project" }));
     fireEvent.click(await screen.findByRole("button", { name: "Inspect repository" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue to lesson" }));
     fireEvent.click(await screen.findByRole("button", { name: "Generate first lesson" }));
 
     expect(

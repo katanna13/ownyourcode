@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { SecurityChallengePanel } from "./SecurityChallengePanel";
+import { CheckResultList } from "./CheckResultList";
+import { CodeFixtureEditor } from "./CodeFixtureEditor";
+import { LearnerLevel, WorkspaceProgressReporter } from "../types/workspace";
 
-type LearnerLevel = "beginner" | "junior" | "intermediate";
 
 type RelevantEvidence = {
   id: string;
@@ -50,7 +51,7 @@ type VerifiedLabPanelProps = {
   repositoryUrl: string;
   learnerLevel: LearnerLevel;
   assessmentReady: boolean;
-  assessmentScore: { earned_points: number; total_points: number } | null;
+  progressReporter?: WorkspaceProgressReporter;
 };
 
 function apiBaseUrl(): string | null {
@@ -85,7 +86,7 @@ export function VerifiedLabPanel({
   repositoryUrl,
   learnerLevel,
   assessmentReady,
-  assessmentScore
+  progressReporter
 }: VerifiedLabPanelProps) {
   const [preparation, setPreparation] = useState<LabPreparation | null>(null);
   const [sourceCode, setSourceCode] = useState("");
@@ -104,6 +105,12 @@ export function VerifiedLabPanel({
     setIsPreparing(false);
     setIsSubmitting(false);
   }, [repositoryUrl, learnerLevel, assessmentReady]);
+
+  useEffect(() => {
+    if (evaluation) {
+      progressReporter?.reportVerifiedLab(evaluation.passed);
+    }
+  }, [evaluation, progressReporter]);
 
   if (!assessmentReady) {
     return null;
@@ -233,7 +240,7 @@ export function VerifiedLabPanel({
   }
 
   return (
-    <section className="verified-lab" aria-labelledby="verified-lab-title">
+    <section className="verified-lab activity-card" id="lab" aria-labelledby="verified-lab-title">
       <h3 id="verified-lab-title">Verified coding lab</h3>
       <p>Practice a small server-owned teaching fixture after your assessment. Nothing is saved.</p>
 
@@ -268,24 +275,16 @@ export function VerifiedLabPanel({
           <ul>{preparation.relevant_evidence.map((item) => <li key={item.id}>{item.label} ({item.id})</li>)}</ul>
           <h5>Constraints</h5>
           <ul>{preparation.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul>
-          <label className="field" htmlFor="verified-lab-source">
-            Teaching fixture code
-            <textarea
-              id="verified-lab-source"
-              value={sourceCode}
-              maxLength={preparation.maximum_source_length}
-              onChange={(event) => setSourceCode(event.target.value)}
-            />
-          </label>
-          <p>Maximum source length: {preparation.maximum_source_length} characters.</p>
-          <div className="verified-lab-actions">
-            <button className="button" type="button" onClick={resetFixture} disabled={isSubmitting}>
-              Reset fixture
-            </button>
-            <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Verifying fixture..." : "Submit fixture"}
-            </button>
-          </div>
+          <CodeFixtureEditor
+            id="verified-lab-source"
+            value={sourceCode}
+            maximumLength={preparation.maximum_source_length}
+            onChange={setSourceCode}
+            onReset={resetFixture}
+            isSubmitting={isSubmitting}
+            submitLabel="Submit fixture"
+            submittingLabel="Verifying fixture..."
+          />
         </form>
       )}
 
@@ -293,25 +292,13 @@ export function VerifiedLabPanel({
         <section className={`message ${evaluation.passed ? "message--success" : "message--error"}`} role="status">
           <h4>{evaluation.passed ? "Lab passed" : "Lab needs another attempt"}</h4>
           <p>{evaluation.message}</p>
-          <ul className="lab-checks">
-            {evaluation.checks.map((check) => (
-              <li key={check.id}>
-                <strong>{check.passed ? "Passed" : "Not passed"}:</strong> {check.message}
-              </li>
-            ))}
-          </ul>
+          <CheckResultList checks={evaluation.checks} />
           <h5>Feedback</h5>
           <ul>{evaluation.feedback.map((item) => <li key={item}>{item}</li>)}</ul>
           <h5>Inspection limitations</h5>
           <ul>{evaluation.inspection_limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
         </section>
       )}
-      <SecurityChallengePanel
-        repositoryUrl={repositoryUrl}
-        learnerLevel={learnerLevel}
-        verifiedLabPassed={Boolean(evaluation?.passed)}
-        assessmentScore={assessmentScore}
-      />
     </section>
   );
 }

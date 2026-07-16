@@ -25,7 +25,6 @@ const validCode = starterCode.replace(
   'allow_origins=["*"]',
   'allow_origins=["http://localhost:5173"]'
 );
-const assessmentScore = { earned_points: 4, total_points: 4 };
 
 function availablePreparation(contextId = "a".repeat(64)) {
   return {
@@ -77,7 +76,6 @@ function renderPanel({
       repositoryUrl={repositoryUrl}
       learnerLevel={learnerLevel}
       verifiedLabPassed={verifiedLabPassed}
-      assessmentScore={assessmentScore}
     />
   );
 }
@@ -231,7 +229,6 @@ describe("SecurityChallengePanel", () => {
         repositoryUrl="https://github.com/acme/learning-api"
         learnerLevel="beginner"
         verifiedLabPassed={false}
-        assessmentScore={assessmentScore}
       />
     );
     expect(screen.queryByText("Verified security challenge")).toBeNull();
@@ -242,7 +239,6 @@ describe("SecurityChallengePanel", () => {
         repositoryUrl="https://github.com/acme/learning-api"
         learnerLevel="beginner"
         verifiedLabPassed={true}
-        assessmentScore={assessmentScore}
       />
     );
     expect(screen.getByRole("button", { name: "Prepare security challenge" })).not.toBeNull();

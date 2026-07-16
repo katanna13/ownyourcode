@@ -49,13 +49,11 @@ const evaluationResponse = {
 function renderPanel({
   repositoryUrl = "https://github.com/acme/learning-api",
   learnerLevel = "junior",
-  assessmentScore = { earned_points: 3, total_points: 4 },
   verifiedLabPassed = true,
   securityChallengePassed = true
 }: {
   repositoryUrl?: string;
   learnerLevel?: "beginner" | "junior" | "intermediate";
-  assessmentScore?: { earned_points: number; total_points: number } | null;
   verifiedLabPassed?: boolean;
   securityChallengePassed?: boolean;
 } = {}) {
@@ -63,7 +61,6 @@ function renderPanel({
     <OralDefensePanel
       repositoryUrl={repositoryUrl}
       learnerLevel={learnerLevel}
-      assessmentScore={assessmentScore}
       verifiedLabPassed={verifiedLabPassed}
       securityChallengePassed={securityChallengePassed}
     />
@@ -122,10 +119,9 @@ describe("OralDefensePanel", () => {
     );
     expect(screen.getByText(/frontend and backend boundaries/)).not.toBeNull();
     expect(screen.queryByText(/reference answer/i)).toBeNull();
-    expect(screen.getByText(/not an authenticated certification/i)).not.toBeNull();
   });
 
-  it("shows loading, submits only oral-defense input, and renders rubric feedback with the score breakdown", async () => {
+  it("shows loading, submits only oral-defense input, and renders rubric feedback", async () => {
     let resolveEvaluation: ((value: unknown) => void) | undefined;
     const evaluationPromise = new Promise((resolve) => {
       resolveEvaluation = resolve;
@@ -162,10 +158,7 @@ describe("OralDefensePanel", () => {
     expect(body.verified_lab_passed).toBeUndefined();
     expect(body.security_challenge_passed).toBeUndefined();
     expect(screen.getByText(/Oral-defense points:/)).not.toBeNull();
-    expect(screen.getByText(/Preview Ownership Score: 86 \/ 100/)).not.toBeNull();
-    expect(screen.getByText(/Raw total: 86.25/)).not.toBeNull();
-    expect(screen.getByText("Demo session complete.")).not.toBeNull();
-    expect(screen.getByText(/Preview Ownership Score:/).closest("section")?.className).toContain("message--success");
+    expect(screen.queryByText("Preview Ownership Score")).toBeNull();
   });
 
   it("does not submit an answer shorter than 40 meaningful characters", async () => {
@@ -236,7 +229,7 @@ describe("OralDefensePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit oral defense" }));
     const feedbackHeading = await screen.findByText("Oral-defense feedback");
 
-    expect(feedbackHeading.closest("section")?.className).toBe("message");
+    expect(feedbackHeading.closest("section")?.className).toBe("oral-defense__feedback");
     expect(screen.getByText("Oral-defense points:").parentElement?.textContent).toBe(
       "Oral-defense points: 0 / 4"
     );
@@ -284,7 +277,6 @@ describe("OralDefensePanel", () => {
       <OralDefensePanel
         repositoryUrl="https://github.com/acme/learning-api"
         learnerLevel="junior"
-        assessmentScore={{ earned_points: 3, total_points: 4 }}
         verifiedLabPassed={true}
         securityChallengePassed={false}
       />
@@ -296,13 +288,12 @@ describe("OralDefensePanel", () => {
       <OralDefensePanel
         repositoryUrl="https://github.com/acme/learning-api"
         learnerLevel="junior"
-        assessmentScore={{ earned_points: 3, total_points: 4 }}
         verifiedLabPassed={true}
         securityChallengePassed={true}
       />
     );
     expect(screen.getByRole("button", { name: "Prepare oral defense" })).not.toBeNull();
     expect(screen.queryByLabelText("Your defense")).toBeNull();
-    expect(screen.queryByText(/Preview Ownership Score:/)).toBeNull();
+    expect(screen.queryByText("Preview Ownership Score")).toBeNull();
   });
 });

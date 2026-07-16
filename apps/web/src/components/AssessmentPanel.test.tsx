@@ -140,7 +140,42 @@ describe("AssessmentPanel", () => {
     expect(screen.getAllByDisplayValue("technology:fastapi")[0].getAttribute("type")).toBe("radio");
   });
 
+  it("keeps radios, evidence selection, and explain-back input interactive through controlled rerenders", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => questionsResponse });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await loadQuestions(fetchMock);
+
+    const multipleChoiceOptions = [
+      "FastAPI is represented in the deterministic evidence catalog.",
+      "The full source tree was reviewed.",
+      "A security scan ruled out known risks.",
+      "A project and assessment result were saved."
+    ];
+    const secondOption = multipleChoiceOptions[1]!;
+    for (const label of multipleChoiceOptions) {
+      const radio = screen.getByRole("radio", { name: label });
+      fireEvent.click(radio);
+      expect((radio as HTMLInputElement).checked).toBe(true);
+    }
+
+    const optionLabel = screen.getByText(secondOption).closest("label");
+    fireEvent.click(optionLabel!);
+    expect((screen.getByRole("radio", { name: secondOption }) as HTMLInputElement).checked).toBe(true);
+
+    const evidenceRadios = screen.getAllByDisplayValue("technology:fastapi");
+    fireEvent.click(evidenceRadios[0]);
+    expect((evidenceRadios[0] as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getAllByDisplayValue("language:python")[0]);
+    expect((screen.getAllByDisplayValue("language:python")[0] as HTMLInputElement).checked).toBe(true);
+
+    const answer = "The controlled explain-back answer stays editable and retains normal typed text.";
+    fireEvent.change(screen.getByLabelText("Your explanation"), { target: { value: answer } });
+    expect((screen.getByLabelText("Your explanation") as HTMLTextAreaElement).value).toBe(answer);
+  });
+
   it("shows loading state, submits answers, and renders server-owned feedback", async () => {
+    const locationBeforeEvaluation = window.location.href;
     let resolveQuestions: ((value: unknown) => void) | undefined;
     const questionFetch = new Promise((resolve) => {
       resolveQuestions = resolve;
@@ -160,6 +195,7 @@ describe("AssessmentPanel", () => {
     expect((screen.getByRole("button", { name: "Evaluating explanation..." }) as HTMLButtonElement).disabled).toBe(true);
 
     await screen.findByText("Assessment feedback");
+    expect(window.location.href).toBe(locationBeforeEvaluation);
     expect(screen.getByText("Score:")).not.toBeNull();
     expect(screen.getByText(/4 \/ 4/)).not.toBeNull();
     expect(fetchMock).toHaveBeenLastCalledWith(
