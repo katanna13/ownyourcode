@@ -138,20 +138,17 @@ See the full architecture document:
 
 ## Project Status
 
-Phase 8 adds one evidence-grounded architecture oral defense after a passing
-security challenge. A bounded OpenAI structured-output call evaluates only the
-learner's answer, while deterministic repository evidence remains the grounding
-authority. The browser then calculates a Preview Ownership Score from the
-current in-memory assessment, verified-lab, security-challenge, and oral-
-defense results. It is not persisted, an authenticated certification, or proof
-of completion after a refresh, another browser, or another device. No project,
-repository result, prompt, lesson, question, answer, source code, or score is
-saved.
+Phase 11A adds a separate authenticated `/app` foundation with Clerk-backed
+identity, owner-scoped projects, PostgreSQL migrations, and persisted Existing
+Repository or New Idea project sources. It deliberately does not yet persist
+inspection results, lessons, activities, attempts, learning paths, or progress.
+The authenticated project detail truthfully says that learning-workspace
+persistence is coming next.
 
-The following are intentionally not implemented: authentication, GitHub
-repository cloning, code execution, security scanning, Ownership Score, demo
-data, database models, or migrations. The New Project flow does not create a
-project, project ID, or workspace.
+The public `/projects/new` demo remains available without an account. Its
+inspection, lesson, assessment, lab, security challenge, oral defense, and
+Preview Ownership Score remain explicitly browser-session-only and are not
+saved to authenticated projects.
 
 ## Initial Repository Structure
 
@@ -174,18 +171,27 @@ services:
 ```powershell
 Copy-Item .env.example .env
 docker compose up --build -d
+docker compose exec api alembic upgrade head
 ```
 
 Verify the API and run the tests:
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/healthz
-docker compose exec api pytest
 docker compose exec web npm run test -- --run
 ```
 
 The frontend is available at `http://localhost:5173`; the FastAPI docs are at
 `http://localhost:8000/docs`. Stop the stack with `docker compose down`.
+
+The PostgreSQL integration suite requires a separately created, explicitly
+named test database. Do not point `TEST_DATABASE_URL` at the application
+database:
+
+```powershell
+docker compose exec db createdb -U ownyourcode ownyourcode_test
+docker compose exec -e TEST_DATABASE_URL='postgresql+psycopg://ownyourcode:ownyourcode@db:5432/ownyourcode_test' api pytest
+```
 
 ## Environment Variables
 

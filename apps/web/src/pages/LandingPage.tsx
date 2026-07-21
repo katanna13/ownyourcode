@@ -16,9 +16,10 @@ export function LandingPage() {
         </p>
         <div className="landing-hero__actions">
           <Link className="button" to="/projects/new">
-            Start a project
+            Try the demo
           </Link>
-          <p>Nothing is stored until a future persistence phase.</p>
+          <Link to="/app/projects">Sign in to save projects</Link>
+          <p>The demo is session-only. Saved projects require sign-in.</p>
         </div>
       </section>
       <section className="workflow-preview glass-surface" aria-labelledby="workflow-preview-title">

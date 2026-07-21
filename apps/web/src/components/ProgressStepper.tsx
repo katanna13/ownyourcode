@@ -12,10 +12,12 @@ const STATE_LABELS: Record<StageAvailability, string> = {
 
 export function ProgressStepper({
   steps,
-  onStageSelect
+  onStageSelect,
+  showLockedContext = true
 }: {
   steps: ProgressStep[];
   onStageSelect: (stage: LearningStage) => void;
+  showLockedContext?: boolean;
 }) {
   const currentStep = steps.find((step) => step.active);
   const progressRailRef = useRef<HTMLElement>(null);
@@ -82,7 +84,7 @@ export function ProgressStepper({
           );
         })}
       </ol>
-      {nextLockedStep?.prerequisite && (
+      {showLockedContext && nextLockedStep?.prerequisite && (
         <p className="progress-stepper__context"><strong>Locked next:</strong> {nextLockedStep.prerequisite}</p>
       )}
     </nav>
