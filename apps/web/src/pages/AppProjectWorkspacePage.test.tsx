@@ -41,6 +41,20 @@ const workspace = {
   }
 };
 
+const noLearningPath = {
+  persisted: true,
+  mode: "none",
+  path_id: null,
+  path_version: null,
+  source_evidence_fingerprint: null,
+  stale: false,
+  limitations: [],
+  evidence_catalog: [],
+  modules: [],
+  resume_module_id: null,
+  summary: null
+};
+
 function renderDetail() {
   return render(
     <AuthenticationTestProvider value={{
@@ -68,7 +82,7 @@ describe("AppProjectWorkspacePage", () => {
 
   it("loads the owner-scoped workspace and starts with an explicit inspection action", async () => {
     vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(new Response(
-      JSON.stringify(url.endsWith("/workspace") ? workspace : project),
+      JSON.stringify(url.endsWith("/workspace") ? workspace : url.endsWith("/learning-path") ? noLearningPath : project),
       { status: 200 }
     ))));
     renderDetail();

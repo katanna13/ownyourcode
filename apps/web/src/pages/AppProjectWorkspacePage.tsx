@@ -9,6 +9,7 @@ import {
   responseMessages
 } from "../auth/authenticatedFetch";
 import { PersistedLearningWorkspace } from "../components/PersistedLearningWorkspace";
+import { LearningPathResponse, LearningPathWorkspace } from "../components/LearningPathWorkspace";
 import { SavedProject } from "../types/projects";
 
 type SavedWorkspace = React.ComponentProps<typeof PersistedLearningWorkspace>["workspace"];
@@ -18,6 +19,7 @@ export function AppProjectWorkspacePage() {
   const authentication = useAuthentication();
   const [project, setProject] = useState<SavedProject | null>(null);
   const [workspace, setWorkspace] = useState<SavedWorkspace | null>(null);
+  const [learningPath, setLearningPath] = useState<LearningPathResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,11 +86,34 @@ export function AppProjectWorkspacePage() {
     }
   }
 
+  async function reloadLearningPath() {
+    if (!projectId) return;
+    const baseUrl = apiBaseUrl();
+    if (!baseUrl) return;
+    try {
+      const response = await authenticatedFetch(`${baseUrl}/api/v1/projects/${projectId}/learning-path`, {
+        getToken: authentication.getToken,
+        onUnauthorized: authentication.markSessionExpired
+      });
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(responseMessages(payload)[0] ?? "The saved learning path could not be loaded.");
+        return;
+      }
+      setLearningPath(payload as LearningPathResponse);
+    } catch (requestError) {
+      if (!(requestError instanceof AuthenticationRequestError)) setError("The API could not be reached. Please try again.");
+    }
+  }
+
   useEffect(() => {
     if (project?.mode === "existing_repository") {
+      setLearningPath(null);
       void reloadWorkspace();
+      void reloadLearningPath();
     } else {
       setWorkspace(null);
+      setLearningPath(null);
     }
   }, [project?.id, project?.mode]);
 
@@ -119,12 +144,28 @@ export function AppProjectWorkspacePage() {
             <p className="workspace-foundation__notice">Build From Scratch learning workspaces are planned for a later phase. This saved idea has no fake learning workflow.</p>
           )}
           {project.mode === "existing_repository" && !workspace && <p role="status">Loading saved learning workspace…</p>}
-          {project.mode === "existing_repository" && workspace && (
+          {project.mode === "existing_repository" && workspace && learningPath?.mode === "multi_module" && (
+            <LearningPathWorkspace
+              projectId={project.id}
+              path={learningPath}
+              hasInspection={workspace.active_snapshot !== null}
+              onPathChange={setLearningPath}
+            />
+          )}
+          {project.mode === "existing_repository" && workspace && learningPath?.mode === "none" && workspace.active_snapshot && (
+            <LearningPathWorkspace
+              projectId={project.id}
+              path={learningPath}
+              hasInspection
+              onPathChange={setLearningPath}
+            />
+          )}
+          {project.mode === "existing_repository" && workspace && (learningPath === null || learningPath.mode === "legacy" || (learningPath.mode === "none" && workspace.active_snapshot === null)) && (
             <PersistedLearningWorkspace
               projectId={project.id}
               workspace={workspace}
               onWorkspaceChange={(progress) => setWorkspace((current) => current ? { ...current, progress } : current)}
-              onReload={reloadWorkspace}
+              onReload={async () => { await reloadWorkspace(); await reloadLearningPath(); }}
             />
           )}
           <Link to="/app/projects">Back to projects</Link>
