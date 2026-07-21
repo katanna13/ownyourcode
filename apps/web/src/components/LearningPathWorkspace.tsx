@@ -196,13 +196,13 @@ export function LearningPathWorkspace({
     }
   }
 
-  if (path.mode === "none") {
+  if (path.mode === "none" || path.stale) {
     if (!hasInspection) return null;
     return (
       <section className="workspace learning-path glass-surface" aria-labelledby="learning-path-setup-title">
         <p className="eyebrow">Saved learning path</p>
-        <h2 id="learning-path-setup-title">Create the current project learning path</h2>
-        <p>Use the already saved deterministic inspection to freeze a small, sequential learning path. This does not replace the public session-only demo.</p>
+        <h2 id="learning-path-setup-title">{path.stale ? "Refresh the saved learning path" : "Create the current project learning path"}</h2>
+        <p>{path.stale ? "The saved repository inspection changed. The earlier immutable path remains historical; create a new path from the current saved evidence." : "Use the already saved deterministic inspection to freeze a small, sequential learning path. This does not replace the public session-only demo."}</p>
         {error && <p className="message message--error" role="alert">{error}</p>}
         <form className="assessment-form" onSubmit={createPath}>
           <label className="field" htmlFor="path-learner-level">Learner level
@@ -213,7 +213,7 @@ export function LearningPathWorkspace({
           <label className="field" htmlFor="path-learning-goal">Learning goal (optional)
             <textarea id="path-learning-goal" maxLength={240} value={learningGoal} onChange={(event) => setLearningGoal(event.target.value)} />
           </label>
-          <button className="button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving learning path..." : "Create saved learning path"}</button>
+          <button className="button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving learning path..." : path.stale ? "Create fresh saved learning path" : "Create saved learning path"}</button>
         </form>
       </section>
     );

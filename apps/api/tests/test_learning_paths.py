@@ -261,6 +261,45 @@ def test_learning_path_is_owner_scoped(test_session_factory) -> None:  # type: i
             LearningPathService().get_path(session, other.id, project_id)
 
 
+def test_changed_saved_inspection_marks_the_old_path_stale_without_rewriting_it(test_session_factory) -> None:  # type: ignore[no-untyped-def]
+    owner_id, project_id = _project_with_snapshot(test_session_factory)
+    original = _create_path(test_session_factory, owner_id, project_id)
+    with test_session_factory() as session:
+        progress = session.query(ProjectLearningProgress).filter_by(project_id=project_id).one()
+        old_snapshot = session.get(ProjectInspectionSnapshot, progress.active_snapshot_id)
+        assert old_snapshot is not None
+        replacement = ProjectInspectionSnapshot(
+            id=uuid4(),
+            project_id=project_id,
+            version=2,
+            canonical_repository_url=old_snapshot.canonical_repository_url,
+            evidence_fingerprint="d" * 64,
+            contract_version=old_snapshot.contract_version,
+            payload=old_snapshot.payload,
+        )
+        session.add(replacement)
+        session.flush()
+        progress.active_snapshot_id = replacement.id
+        session.commit()
+
+    with test_session_factory() as session:
+        stale = LearningPathService().get_path(session, owner_id, project_id)
+        assert stale.stale is True
+        assert stale.path_id == original.path_id
+        assert stale.modules == []
+
+    with test_session_factory() as session:
+        refreshed = LearningPathService().create_path(
+            session,
+            owner_id,
+            project_id,
+            LearningPathCreateRequest(learner_level="junior"),
+            "path-create-after-reinspection",
+        )
+        assert refreshed.path_version == 2
+        assert refreshed.stale is False
+
+
 def test_learning_path_routes_are_authenticated_and_do_not_project_private_answers(
     test_session_factory, authenticated_client
 ) -> None:  # type: ignore[no-untyped-def]

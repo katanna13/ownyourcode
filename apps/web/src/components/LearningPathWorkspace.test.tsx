@@ -122,4 +122,14 @@ describe("LearningPathWorkspace", () => {
       expect.objectContaining({ method: "POST" })
     );
   });
+
+  it("offers a new immutable path when the active inspection makes an older path stale", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    renderWorkspace({ ...multiPath, stale: true });
+
+    expect(screen.getByRole("heading", { name: "Refresh the saved learning path" })).toBeTruthy();
+    expect(screen.getByText(/earlier immutable path remains historical/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Create fresh saved learning path" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Orient yourself in confirmed evidence" })).toBeNull();
+  });
 });
