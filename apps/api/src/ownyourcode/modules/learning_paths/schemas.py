@@ -13,7 +13,7 @@ from ownyourcode.modules.learning_workspaces.schemas import (
     normalize_safe_display_text,
     normalize_teaching_source,
 )
-from ownyourcode.modules.lessons.schemas import LearnerLevel, validate_evidence_id
+from ownyourcode.modules.lessons.schemas import EvidenceItem, LearnerLevel, validate_evidence_id
 
 
 LEARNING_PATH_CONTRACT_VERSION = "learning-path.v1"
@@ -188,6 +188,7 @@ class LearningPathResponse(BaseModel):
     source_evidence_fingerprint: str | None = None
     stale: bool = False
     limitations: list[str] = Field(default_factory=list, max_length=8)
+    evidence_catalog: list[EvidenceItem] = Field(default_factory=list, max_length=40)
     modules: list[LearningPathModuleResponse] = Field(default_factory=list, max_length=MAX_MODULES_PER_PATH)
     resume_module_id: UUID | None = None
     summary: LearningPathSummary | None = None

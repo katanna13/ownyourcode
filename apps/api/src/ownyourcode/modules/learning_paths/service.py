@@ -288,11 +288,12 @@ class LearningPathService:
             prior_demonstrated = progress.state == ModuleProgressState.DEMONSTRATED
 
     def _response(self, session: Session, path: ProjectLearningPathVersion, snapshot: ProjectInspectionSnapshot) -> LearningPathResponse:
+        snapshot_payload = self._snapshot_payload(snapshot)
         modules = list(session.scalars(select(ProjectLearningModule).where(ProjectLearningModule.path_version_id == path.id).order_by(ProjectLearningModule.position)))
         responses = [self._module_response(session, item) for item in modules]
         summary = self._summary(session, path, responses)
         resume = next((item.id for item in responses if item.state in {"available", "in_progress", "remediation_required"}), None)
-        return LearningPathResponse(mode="multi_module", path_id=path.id, path_version=path.version, source_evidence_fingerprint=path.source_evidence_fingerprint, limitations=path.path_limitations or [], modules=responses, resume_module_id=resume, summary=summary)
+        return LearningPathResponse(mode="multi_module", path_id=path.id, path_version=path.version, source_evidence_fingerprint=path.source_evidence_fingerprint, limitations=path.path_limitations or [], evidence_catalog=snapshot_payload.evidence_catalog.items, modules=responses, resume_module_id=resume, summary=summary)
 
     def _module_response(self, session: Session, module: ProjectLearningModule) -> LearningPathModuleResponse:
         definition = self._definition(module)

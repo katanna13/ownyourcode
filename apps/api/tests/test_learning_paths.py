@@ -148,6 +148,7 @@ def test_learning_path_freezes_three_modules_and_excludes_private_answers(test_s
     ]
     assert [module.state for module in created.modules] == ["available", "locked", "locked"]
     assert created.persisted is True
+    assert [item.id for item in created.evidence_catalog][:2] == ["repository:name", "repository:default-branch"]
     public_payload = created.model_dump_json()
     assert "expected_choice_id" not in public_payload
     assert "expected_order" not in public_payload
