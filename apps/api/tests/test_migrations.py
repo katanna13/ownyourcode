@@ -13,6 +13,11 @@ def test_initial_migration_upgrades_an_empty_postgresql_database(
         "project_learning_content_versions",
         "project_learning_attempts",
         "project_learning_progress",
+        "project_learning_path_versions",
+        "project_learning_modules",
+        "project_module_progress",
+        "project_module_attempts",
+        "project_module_adaptations",
     }.issubset(
         inspector.get_table_names()
     )
@@ -22,4 +27,8 @@ def test_initial_migration_upgrades_an_empty_postgresql_database(
         "project_status",
         "learning_operation_state",
         "learning_activity_kind",
+        "learning_path_generation_state",
+        "module_progress_state",
+        "module_adaptation_kind",
+        "module_adaptation_state",
     }.issubset(enum_names)

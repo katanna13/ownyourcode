@@ -14,6 +14,13 @@ from ownyourcode.modules.learning_workspaces.models import (  # noqa: F401
     ProjectLearningContentVersion,
     ProjectLearningProgress,
 )
+from ownyourcode.modules.learning_paths.models import (  # noqa: F401
+    ProjectLearningModule,
+    ProjectLearningPathVersion,
+    ProjectModuleAdaptation,
+    ProjectModuleAttempt,
+    ProjectModuleProgress,
+)
 from ownyourcode.modules.projects.models import Project, ProjectSource  # noqa: F401
 
 

@@ -65,7 +65,9 @@ def test_session_factory(migrated_test_engine):  # type: ignore[no-untyped-def]
     with migrated_test_engine.begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE project_learning_progress, project_learning_attempts, "
+                "TRUNCATE project_module_adaptations, project_module_attempts, "
+                "project_module_progress, project_learning_modules, "
+                "project_learning_path_versions, project_learning_progress, project_learning_attempts, "
                 "project_learning_content_versions, project_inspection_snapshots, "
                 "project_sources, projects, users CASCADE"
             )
