@@ -149,6 +149,51 @@ class PublicModuleActivity(BaseModel):
     completion_role: str
 
 
+class AttemptReviewOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=240)
+    label: str = Field(min_length=1, max_length=240)
+    explanation: str = Field(min_length=10, max_length=420)
+    selected: bool
+    expected: bool
+
+
+class AttemptReviewCheck(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=96)
+    passed: bool
+    message: str = Field(min_length=1, max_length=420)
+
+
+class ActivityAttemptReview(BaseModel):
+    """Post-submission teaching feedback; never included without a stored attempt."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    attempt_id: UUID
+    activity_id: str = Field(min_length=3, max_length=96)
+    passed: bool
+    your_answer: str = Field(min_length=1, max_length=1_000)
+    expected_answer: str = Field(min_length=1, max_length=1_000)
+    why_expected_answer: str = Field(min_length=10, max_length=700)
+    project_teaching: str = Field(min_length=10, max_length=700)
+    evidence_ids: list[str] = Field(min_length=1, max_length=4)
+    option_feedback: list[AttemptReviewOption] = Field(default_factory=list, max_length=4)
+    transition_explanations: list[str] = Field(default_factory=list, max_length=4)
+    checks: list[AttemptReviewCheck] = Field(default_factory=list, max_length=4)
+    can_retry: bool
+    example_solution: str | None = Field(default=None, max_length=1_000)
+
+    @field_validator("evidence_ids")
+    @classmethod
+    def validate_review_evidence(cls, values: list[str]) -> list[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("Review evidence IDs must be unique.")
+        return [validate_evidence_id(value) for value in values]
+
+
 class LearningPathModuleResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -165,6 +210,7 @@ class LearningPathModuleResponse(BaseModel):
     state: ModuleState
     required_remediation: bool
     remediation_activities: list[PublicModuleActivity] = Field(default_factory=list, max_length=4)
+    attempt_reviews: list[ActivityAttemptReview] = Field(default_factory=list, max_length=10)
 
 
 class LearningPathSummary(BaseModel):
@@ -202,6 +248,7 @@ class ModuleAttemptResponse(BaseModel):
     passed: bool | None
     earned_points: int | None
     result: dict[str, Any]
+    review: ActivityAttemptReview
     module: LearningPathModuleResponse
     summary: LearningPathSummary
 
